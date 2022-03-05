@@ -1,0 +1,194 @@
+
+%%InTheNameOfGod
+%%MATLAB CODE
+clc
+clear
+close all
+
+%%InputData
+
+h = 20;%air
+p = 0.07;%diameter=2.5cm
+k = 244;%aluminum
+erea = 0.0005;%diameter=2.5cm
+Tzero = 400;
+Tinfinity = 300;
+xDomain = 1;
+increment = [0.2,0.1,0.05,0.025];
+
+%%NumericalSolution
+
+
+cellOfAnswers = cell(numel(increment),2);
+
+for counter = 1:numel(increment)
+    
+    cellOfAnswers{counter,1} = 0:increment(counter):xDomain;
+    cellOfAnswers{counter,2} = solverFunction(h,p,k,erea,Tzero,Tinfinity,xDomain,increment(counter));
+    
+end
+
+
+
+cellOfAnswersAtSamePoint = cell(numel(increment),1);
+cellOfAnswersAtSamePoint{1} = cellOfAnswers{1,2};
+
+
+for num = 2:numel(increment)
+    
+    nodeNumders = round( ( (0:increment(1):xDomain) / increment(num) )+1 );
+    a = cellOfAnswers{num,2};
+    cellOfAnswersAtSamePoint{num} = a(nodeNumders);
+    
+end
+
+cellOfAnswersAtSamePoint = cell2mat(cellOfAnswersAtSamePoint);
+
+
+%%AnalyticalSolution
+
+x = 0:0.025:xDomain;
+l = xDomain;
+m = sqrt( (h*p)/(k*erea) );
+analyticalAnswer = ( cosh(m*(l - x)) + (h/(m*k))*sinh(m*(l - x)) ) / ( cosh(m*l) + (h/(m*k))*sinh(m*l) )*...
+(Tzero - Tinfinity) + Tinfinity;
+
+%%ErrorAnalysis
+
+successiveError = zeros(numel(increment)-1,numel(increment)+2);
+
+
+for  counter = 1:numel(increment)-1
+    
+    successiveError(counter,:) = cellOfAnswersAtSamePoint(counter+1,:) - ...
+        cellOfAnswersAtSamePoint(counter,:);
+    
+end
+
+%%EslopeOfError
+
+slopeOfError = zeros(numel(increment)-2,numel(increment)+2);
+
+incrementt = increment(end:-1:1);
+for  counter = 1:numel(increment)-2
+    
+    slopeOfError(counter,:) = (successiveError(counter+1,:) - ...
+        successiveError(counter,:))/incrementt(counter);
+    
+end
+
+
+
+
+
+
+
+normOfError = norm(cell2mat(cellOfAnswers(end)) - analyticalAnswer);
+absoluteError = abs(cell2mat(cellOfAnswers(end)) - analyticalAnswer)*100;
+relativeError = abs((cell2mat(cellOfAnswers(end)) - analyticalAnswer)./analyticalAnswer)*100;
+
+%%Visulization
+
+ figure(1);
+
+ for i = 1:numel(increment)
+     
+     scatter(cellOfAnswers{i,1},cellOfAnswers{i,2},'DisplayName',['h = ',num2str(increment(i))])
+     hold on
+     
+ end
+ 
+legend show;
+grid on
+title('answer')
+xlabel('x(m)')
+ylabel('temperature')
+ 
+
+pause(.1)
+position = increment(1):increment(1):xDomain;
+figure(2);
+ for i = 2:numel(increment)+1
+     
+     scatter(increment(end:-1:2),abs(successiveError(end:-1:1,i)),'DisplayName',['place = ',num2str(position(i))])
+     hold on
+     
+ end
+ 
+legend show;
+grid on
+title('Error')
+xlabel('h')
+ylabel('successiveError')
+
+
+pause(.1)
+position = increment(1):increment(1):xDomain;
+figure(3);
+ for i = 2:numel(increment)+1
+     
+     plot(increment(end:-1:3),slopeOfError(end:-1:1,i),'DisplayName',['place = ',num2str(position(i))])
+     hold on
+     
+ end
+ 
+legend show;
+grid on
+title('Error')
+xlabel('h')
+ylabel('Slope')
+
+
+
+
+
+pause(.1)
+figure(4);
+scatter(x,absoluteError,'b')
+hold on
+scatter(x,relativeError,'r')
+legend('AbsoluteError','relativeError');
+grid on
+title('Error')
+xlabel('x(m)')
+ylabel('%Error using analytical solution')
+
+ function numericalAnswer = solverFunction(h,p,k,erea,Tzero,Tinfinity,xDomain,increment)
+ 
+ %%NumericalSolution
+%%Discretation
+
+
+ x = 0:increment:xDomain;
+ A = sparse(numel(x),numel(x));
+
+
+for i = 2:numel(x)-1
+    
+    A(i,i - 1) = 1/(increment^2);
+    A(i,i) = -2/(increment^2) -(h*p)/(k*erea);
+    A(i,i + 1) = 1/(increment^2);
+
+
+end
+
+b = -(h*p)/(k*erea)*ones(numel(x),1)*Tinfinity;
+
+
+%%BounderyCondition
+
+A(1) = 1;
+b(1) = Tzero; 
+A(end) = -(  (2*k/increment)+h +(h*p)/(k*erea)*increment );
+A(end,end-1) = 2*k/increment; 
+b(end) = -h*Tinfinity + (h*p)/(k*erea)*Tinfinity*increment;
+
+numericalAnswer = (A\b)';
+
+
+
+ 
+ end
+
+
+
