@@ -1,0 +1,242 @@
+
+%%InTheNameOfGod
+%%MATLAB CODE
+clc
+clear
+close all
+
+%%InputData
+
+ro =1 ;
+c =1 ;
+k =1 ;
+h =1 ; 
+p =1 ;
+A =1 ;
+L =1 ;
+TInfinte =300 ;
+TZero =400 ;
+TInitial =300 ;
+deltaTime =0.01 ;
+deltaX =0.2 ;
+durigTime =3 ;
+
+%%DimentionlessNumbers
+
+Bi = h*p/k;
+Ar = p*L/A;
+alpha = ro*c/k;
+deltaFo = alpha*deltaTime/(L^2);
+endFo = alpha*durigTime/(L^2);
+deltaXStar = deltaX/L;
+tethaStarAtPlaceZero = (TZero - TInfinte)/(TZero - TInfinte);
+tethaStarintial = (TInfinte - TInfinte)/(TZero - TInfinte);
+
+
+tethaStarOfBackward = Backward(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo);
+tethaStarOfForeward = Foreward(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo);
+tethaStarOfCTCS = CTCS(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo);
+tethaStarOfCrankeNikelson = CrankeNikelson(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo);
+
+figure(1);
+for i = 2:numel(0:deltaFo:endFo)
+    
+  plot(0:deltaXStar:1,tethaStarOfBackward(i,:));  
+hold on
+
+end
+grid on
+xlabel('x(m)')
+ylabel('tetha star')
+title('Backward')
+
+
+
+figure(2);
+for i = 2:numel(0:deltaFo:endFo)
+    
+  plot(0:deltaXStar:1,tethaStarOfForeward(i,:));  
+hold on
+
+end
+grid on
+xlabel('x(m)')
+ylabel('tetha star')
+title('Forward')
+
+figure(3);
+for i = 2:numel(0:deltaFo:endFo)
+    
+  plot(0:deltaXStar:1,tethaStarOfCTCS(i,:));  
+hold on
+
+end
+grid on
+xlabel('x(m)')
+ylabel('tetha star')
+title('Centeral')
+
+figure(4);
+for i = 2:numel(0:deltaFo:endFo)
+    
+  plot(0:deltaXStar:1,tethaStarOfCrankeNikelson(i,:));  
+hold on
+
+end
+grid on
+xlabel('x(m)')
+ylabel('tetha star')
+title('Centeral')
+
+
+
+
+function answerOfBackward = Backward(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo)
+tStarSpan = 0:deltaFo:endFo;
+xStarSpan = 0:deltaXStar:1;
+
+tethaStar = zeros(numel(tStarSpan),numel(xStarSpan));
+tethaStar(1,:) = tethaStarintial;
+tethaStar(:,1) = tethaStarAtPlaceZero;
+
+A = sparse(numel(xStarSpan),numel(xStarSpan));
+A(1) = 1;
+A(end) = 1/(deltaXStar) + deltaXStar/2*(deltaFo)+(Bi + 1)*Ar;
+A(end,end-1) = -1/(deltaXStar);
+
+for i = 2:numel(xStarSpan)-1
+    
+    A(i,i+1) = -1/(deltaXStar)^2;
+    A(i,i) = 2*1/(deltaXStar)^2+1/(2*deltaFo)+ Bi*Ar;
+    A(i,i-1) = -1/(deltaXStar)^2;
+    
+end
+
+b = zeros(numel(xStarSpan),1);
+b(1)=1;
+
+for j = 2:numel(tStarSpan)
+    
+    for m=2:numel(xStarSpan)-1
+    b(m) = tethaStar(j-1,m)/(2*deltaFo);
+    end
+    b(end) = deltaXStar/(2*deltaFo)*tethaStar(j-1,end);
+    
+    tethaStar(j,:)=(A\b)';
+    
+end
+
+answerOfBackward = tethaStar;
+
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+function answerOfForeward = Foreward(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo)
+
+tStarSpan = 0:deltaFo:endFo;
+xStarSpan = 0:deltaXStar:1;
+
+tethaStar = zeros(numel(tStarSpan),numel(xStarSpan));
+tethaStar(1,:) = tethaStarintial;
+tethaStar(:,1) = tethaStarAtPlaceZero;
+
+for j = 2:numel(tStarSpan)
+    for i = 2:numel(xStarSpan)-1
+         tethaStar(j,i) = deltaFo*((tethaStar(j-1,i+1)-2*tethaStar(j-1,i)+tethaStar(j-1,i-1))...
+         /(deltaXStar)^2 - Bi*Ar*tethaStar(j-1,i)) + tethaStar(j-1,i);
+    end
+    tethaStar(j,end) = deltaFo*( (-2*deltaXStar*Bi*tethaStar(j-1,end) -2*tethaStar(j-1,end) + 2*tethaStar(j-1,end-1))/(deltaXStar^2) - Bi*Ar*tethaStar(j-1,end) ) + tethaStar(j-1,end);
+end
+
+answerOfForeward = tethaStar;
+
+
+end
+
+
+function answerOfCrankeNikelson = CrankeNikelson(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo)
+
+tStarSpan = 0:deltaFo:endFo;
+xStarSpan = 0:deltaXStar:1;
+
+tethaStar = zeros(numel(tStarSpan),numel(xStarSpan));
+tethaStar(1,:) = tethaStarintial;
+tethaStar(:,1) = tethaStarAtPlaceZero;
+
+A = sparse(numel(xStarSpan),numel(xStarSpan));
+A(1) = 1;
+A(end) = 1/(deltaXStar) + deltaXStar/2*(deltaFo)+Bi + Bi*Ar*deltaXStar/2;
+A(end,end-1) = -1/(deltaXStar);
+
+for i = 2:numel(xStarSpan)-1
+    
+    A(i,i+1) = -0.5/(deltaXStar)^2;
+    A(i,i) = 1/(deltaXStar)^2+1/(2*deltaFo)+ 0.5*Bi*Ar;
+    A(i,i-1) = -0.5/(deltaXStar)^2;
+    
+end
+
+b = zeros(numel(xStarSpan),1);
+b(1)=1;
+
+for j = 2:numel(tStarSpan)
+    
+    for m=2:numel(xStarSpan)-1
+    b(m) =0.5*((tethaStar(j-1,m+1)-2*tethaStar(j-1,m)+tethaStar(j-1,m-1))/(deltaXStar)^2 -Bi*Ar*tethaStar(j-1,m))+tethaStar(j-1,m)/(2*deltaFo);
+    end
+    b(end) = deltaXStar/(2*deltaFo)*tethaStar(j-1,end);
+    
+    tethaStar(j,:)=(A\b)';
+    
+end
+
+answerOfCrankeNikelson = tethaStar;
+
+
+end
+
+
+
+
+
+function answerOfCTCS = CTCS(Bi,Ar,deltaFo,deltaXStar,tethaStarAtPlaceZero,tethaStarintial,endFo)
+
+tStarSpan = 0:deltaFo:endFo;
+xStarSpan = 0:deltaXStar:1;
+
+tethaStar = zeros(numel(tStarSpan),numel(xStarSpan));
+tethaStar(1,:) = tethaStarintial;
+tethaStar(:,1) = tethaStarAtPlaceZero;
+
+        for i = 2:numel(xStarSpan)-1
+    tethaStar(2,i) = 2*deltaFo*((tethaStar(1,i+1)-2*tethaStar(1,i)+tethaStar(1,i-1))...
+        /(deltaXStar)^2 - Bi*Ar*tethaStar(1,i)) + tethaStar(1,i);
+        end
+    tethaStar(2,end) = -2*Bi*deltaXStar*tethaStar(2,end - 1) + tethaStar(2,end - 2);
+    
+
+    for j = 3:numel(tStarSpan)
+        for i = 2:numel(xStarSpan)-1
+    tethaStar(j,i) = 2*deltaFo*((tethaStar(j-1,i+1)-2*tethaStar(j-1,i)+tethaStar(j-1,i-1))...
+        /(deltaXStar)^2 - Bi*Ar*tethaStar(j-1,i)) + tethaStar(j-2,i);
+        end
+    tethaStar(j,end) = -2*Bi*deltaXStar*tethaStar(j,end - 1) + tethaStar(j,end - 2);
+    end
+
+answerOfCTCS = tethaStar;
+
+end
+
+
+
