@@ -1,0 +1,117 @@
+clc;
+clear;
+close all;
+BoundryCondition=input('choise boundary condition: 1-three Function   2-two Function     3- sinus function:  ');
+Aprroch=input('Enter method: 1-Lax   2-UpWine  3-Lax venrof  4:Macormack:  ');
+U=zeros(1,1);
+UR=zeros(1,1);
+c=0.5;
+Xend=1;
+Tend=1;
+delx=0.01;
+Noe=0.5;
+delt=(Noe*delx)/c;
+x=0:delx:1;
+t=0:delt:1;
+Phi=0:pi/100:pi;
+if BoundryCondition==1
+    for i=1:length(x)
+        if x(i)<0.25
+            U(i,1)=1;
+        else
+            U(i,1)=0;
+        end
+        if x(i)<0.75
+            UR(i,1)=1;
+        else
+            UR(i,1)=0;
+        end
+    end
+    U(1,2:length(t))=U(1,1);
+elseif BoundryCondition==2
+    for i=1:length(x)
+            if x(i)<0.2
+                U(i,1)=0;
+            elseif x(i)>=0.2 && x(i)<0.3
+                U(i,1)=1;
+            else
+                U(i,1)=0;
+            end
+             if x(i)<0.7
+                UR(i,1)=0;
+            elseif x(i)>=0.7 && x(i)<0.8
+                UR(i,1)=1;
+            else
+                UR(i,1)=0;
+            end
+    end
+else
+    for i=1:length(x)
+         U(i,1)=sin(4*pi*x(i));
+    end
+    for i=1:length(x)
+        if x(i)>=0.5
+         UR(i,1)=sin(4*pi*x(i));
+        end
+    end
+end
+    U(1,2:length(t))=U(1,1);
+
+
+if Aprroch==2
+    G=(((1-Noe)+Noe*cos(Phi)).^2+(Noe*sin(Phi)).^2).^(0.5);
+    for j=1:length(t)-1
+        for i=2:length(x)
+            U(i,j+1)=Noe*U(i-1,j)+(1-Noe)*U(i,j);
+        end 
+    end 
+elseif Aprroch==1
+    G=((cos(Phi)).^2+(Noe.*sin(Phi)).^2).^(0.5);
+    for j=1:length(t)-1
+        for i=2:length(x)-1
+            U(i,j+1)=((-Noe/2)+1/2)*U(i+1,j)+((Noe/2)+1/2)*U(i-1,j);
+        end 
+            U(length(x),j+1)=Noe*U(length(x)-1,j)+(1-Noe)*U(length(x),j);
+
+    end 
+elseif Aprroch==3
+    G=((1-2*(Noe.*sin(Phi./2)).^2).^2+(Noe*sin(Phi)) .^2).^(0.5);
+    for j=1:length(t)-1
+            for i=2:length(x)-1
+                U(i,j+1)=U(i,j)+(-Noe/2)*(U(i+1,j)-U(i-1,j))+(((Noe^2)/2))*(U(i+1,j)-2*U(i,j)+U(i-1,j));
+            end 
+                U(length(x),j+1)=Noe*U(length(x)-1,j)+(1-Noe)*U(length(x),j);
+    
+    end
+elseif Aprroch==4
+     G=((1-2*(Noe^2)*(sin(Phi./2).^2)).^2+(Noe*sin(Phi)).^2);
+    for j=1:length(t)-1
+            for i=2:length(x)-1
+                U(i,j+1)=-Noe*U(i+1,j)+(1+Noe)*U(i,j);
+
+            end 
+            for i=2:length(x)-1   
+                U(i,j+1)=(1/2)*(U(i,j)+U(i,j+1)-Noe*(U(i,j+1)-U(i-1,j+1)));
+            end
+
+                U(length(x),j+1)=Noe*U(length(x)-1,j)+(1-Noe)*U(length(x),j);
+    
+    end
+end
+
+plot(x,U(:,end));
+xlabel('x')
+ylabel('U')
+grid on;
+hold on;
+plot(x,UR,'r')
+legend('Numerical','Analytical')
+figure(2)
+plot(Phi./pi,G);
+xlabel('Phi')
+ylabel('G')
+grid on;
+
+    
+    
+
